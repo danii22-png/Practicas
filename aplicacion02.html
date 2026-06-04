@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitTrack Pro</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    color:white;
+    min-height:100vh;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+header h1{
+    font-size:3rem;
+    color:#38bdf8;
+}
+
+.cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:rgba(255,255,255,.08);
+    backdrop-filter:blur(10px);
+    border-radius:20px;
+    padding:20px;
+}
+
+.card h2{
+    margin-bottom:15px;
+    color:#38bdf8;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#38bdf8;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0ea5e9;
+}
+
+.result{
+    margin-top:15px;
+    font-size:1.1rem;
+}
+
+.progress{
+    width:100%;
+    height:25px;
+    background:#334155;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#22c55e,#4ade80);
+    transition:1s;
+}
+
+ul{
+    list-style:none;
+    margin-top:10px;
+}
+
+li{
+    background:#334155;
+    padding:10px;
+    margin:5px 0;
+    border-radius:10px;
+}
+
+.stats{
+    display:flex;
+    justify-content:space-around;
+    margin-top:15px;
+}
+
+.stat{
+    text-align:center;
+}
+
+.stat span{
+    display:block;
+    font-size:2rem;
+    font-weight:bold;
+    color:#4ade80;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+    <h1>🏆 FITTRACK PRO</h1>
+    <p>Control completo de tu salud y rendimiento</p>
+</header>
+
+<div class="cards">
+
+<div class="card">
+    <h2>📏 IMC</h2>
+    <input type="number" id="peso" placeholder="Peso (kg)">
+    <input type="number" id="altura" placeholder="Altura (cm)">
+    <button onclick="calcularIMC()">Calcular</button>
+    <div class="result" id="imcResultado"></div>
+</div>
+
+<div class="card">
+    <h2>🍔 Comidas</h2>
+    <input type="text" id="comida" placeholder="Ej: Pollo con arroz">
+    <input type="number" id="calorias" placeholder="Calorías">
+    <button onclick="agregarComida()">Añadir</button>
+    <ul id="listaComidas"></ul>
+</div>
+
+<div class="card">
+    <h2>😴 Sueño</h2>
+    <input type="number" id="sueno" placeholder="Horas dormidas">
+    <button onclick="analizarSueno()">Analizar</button>
+    <div class="result" id="resultadoSueno"></div>
+</div>
+
+<div class="card">
+    <h2>💧 Agua</h2>
+    <input type="number" id="agua" placeholder="Litros bebidos">
+    <button onclick="registrarAgua()">Registrar</button>
+
+    <div class="progress">
+        <div class="progress-bar" id="aguaBar"></div>
+    </div>
+
+    <div class="result" id="aguaTexto"></div>
+</div>
+
+</div>
+
+<div class="card" style="margin-top:20px">
+    <h2>📊 Resumen Diario</h2>
+
+    <div class="stats">
+        <div class="stat">
+            <span id="totalCalorias">0</span>
+            Calorías
+        </div>
+
+        <div class="stat">
+            <span id="totalComidas">0</span>
+            Comidas
+        </div>
+
+        <div class="stat">
+            <span id="nivelSalud">100%</span>
+            Salud
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+
+let caloriasTotales = 0;
+let comidas = 0;
+
+function calcularIMC(){
+
+    let peso = parseFloat(document.getElementById('peso').value);
+    let altura = parseFloat(document.getElementById('altura').value)/100;
+
+    let imc = peso/(altura*altura);
+
+    let estado = "";
+
+    if(imc < 18.5)
+        estado="Bajo peso";
+    else if(imc < 25)
+        estado="Peso ideal ✅";
+    else if(imc < 30)
+        estado="Sobrepeso";
+    else
+        estado="Obesidad";
+
+    document.getElementById('imcResultado').innerHTML =
+    `IMC: <b>${imc.toFixed(1)}</b><br>${estado}`;
+}
+
+function agregarComida(){
+
+    let comida = document.getElementById('comida').value;
+    let calorias = parseInt(document.getElementById('calorias').value);
+
+    if(!comida || !calorias) return;
+
+    let li = document.createElement('li');
+    li.textContent = comida + " - " + calorias + " kcal";
+
+    document.getElementById('listaComidas').appendChild(li);
+
+    caloriasTotales += calorias;
+    comidas++;
+
+    document.getElementById('totalCalorias').textContent = caloriasTotales;
+    document.getElementById('totalComidas').textContent = comidas;
+
+    guardarDatos();
+}
+
+function analizarSueno(){
+
+    let horas = parseFloat(document.getElementById('sueno').value);
+
+    let texto = "";
+
+    if(horas >= 8)
+        texto = "🏆 Descanso excelente";
+    else if(horas >= 7)
+        texto = "✅ Buen descanso";
+    else if(horas >= 6)
+        texto = "⚠️ Descanso regular";
+    else
+        texto = "❌ Descanso insuficiente";
+
+    document.getElementById('resultadoSueno').innerHTML = texto;
+}
+
+function registrarAgua(){
+
+    let litros = parseFloat(document.getElementById('agua').value);
+
+    let porcentaje = Math.min((litros/2.5)*100,100);
+
+    document.getElementById('aguaBar').style.width =
+        porcentaje + "%";
+
+    document.getElementById('aguaTexto').innerHTML =
+        porcentaje.toFixed(0)+"% del objetivo diario";
+}
+
+function guardarDatos(){
+
+    localStorage.setItem("calorias", caloriasTotales);
+    localStorage.setItem("comidas", comidas);
+}
+
+window.onload=()=>{
+
+    caloriasTotales =
+        parseInt(localStorage.getItem("calorias")) || 0;
+
+    comidas =
+        parseInt(localStorage.getItem("comidas")) || 0;
+
+    document.getElementById('totalCalorias').textContent =
+        caloriasTotales;
+
+    document.getElementById('totalComidas').textContent =
+        comidas;
+}
+
+</script>
+
+</body>
+</html>
