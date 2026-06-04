@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAME VAULT — Colección Personal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #04040a;
+      --surface: #0c0c16;
+      --surface2: #141422;
+      --border: rgba(255,255,255,0.07);
+      --cyan: #00f0d0;
+      --pink: #f72585;
+      --yellow: #ffd60a;
+      --purple: #9b5de5;
+      --green: #06d6a0;
+      --orange: #ff6400;
+      --text: #dde2f0;
+      --muted: #4a4a6a;
+      --glow-cyan: 0 0 24px rgba(0,240,208,0.4);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* CURSOR */
+    #cursor {
+      position: fixed;
+      width: 8px; height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform 0.1s;
+    }
+    #cursor-ring {
+      position: fixed;
+      width: 28px; height: 28px;
+      border: 1.5px solid rgba(0,240,208,0.55);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: left 0.1s, top 0.1s;
+    }
+
+    /* CANVAS */
+    #canvas {
+      position: fixed;
+      inset: 0; z-index: 0;
+      pointer-events: none;
+    }
+
+    /* SCANLINES */
+    #scanlines {
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent, transparent 2px,
+        rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
+      );
+      pointer-events: none; z-index: 500;
+    }
+
+    /* CORNERS */
+    .corner { position: fixed; width: 48px; height: 48px; pointer-events: none; z-index: 50; }
+    .c-tl { top: 20px; left: 20px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); opacity: 0.45; }
+    .c-tr { top: 20px; right: 20px; border-top: 2px solid var(--pink); border-right: 2px solid var(--pink); opacity: 0.45; }
+    .c-bl { bottom: 20px; left: 20px; border-bottom: 2px solid var(--pink); border-left: 2px solid var(--pink); opacity: 0.45; }
+    .c-br { bottom: 20px; right: 20px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); opacity: 0.45; }
+
+    /* LAYOUT */
+    #app {
+      position: relative; z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 5vw, 64px);
+    }
+
+    /* HEADER */
+    header { padding: 56px 0 28px; }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .pre-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: 0.8;
+    }
+
+    .main-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(38px, 7vw, 84px);
+      font-weight: 900;
+      line-height: 0.88;
+      text-transform: uppercase;
+      position: relative;
+      display: inline-block;
+    }
+
+    .line1 { display: block; color: var(--text); }
+    .line2 {
+      display: block;
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--cyan);
+      filter: drop-shadow(0 0 14px rgba(0,240,208,0.5));
+    }
+
+    .glitch-layer {
+      position: absolute; inset: 0;
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(38px, 7vw, 84px);
+      font-weight: 900;
+      line-height: 0.88;
+      text-transform: uppercase;
+      color: var(--pink);
+      clip-path: polygon(0 22%, 100% 22%, 100% 48%, 0 48%);
+      animation: glitch 5s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes glitch {
+      0%,87%,100% { opacity: 0; transform: translate(0); }
+      88% { opacity: 0.75; transform: translate(-5px, 0); }
+      89% { opacity: 0.75; transform: translate(5px, 0); }
+      90% { opacity: 0; }
+      94% { opacity: 0.4; transform: translate(-2px, 0); }
+      95% { opacity: 0; }
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--green);
+      border: 1px solid rgba(6,214,160,0.3);
+      padding: 8px 14px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 1.6s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .header-rule {
+      margin-top: 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .rule-diamond {
+      width: 7px; height: 7px;
+      background: var(--cyan);
+      transform: rotate(45deg); flex-shrink: 0;
+    }
+
+    .rule-line {
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--cyan), rgba(0,240,208,0.08), transparent);
+    }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    .stat-block {
+      background: var(--surface);
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-block::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 2px;
+      background: var(--cyan);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.9s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .stats-anim .stat-block::after { transform: scaleX(1); }
+    .stats-anim .stat-block:nth-child(2)::after { transition-delay: 0.1s; }
+    .stats-anim .stat-block:nth-child(3)::after { transition-delay: 0.2s; }
+    .stats-anim .stat-block:nth-child(4)::after { transition-delay: 0.3s; }
+
+    .stat-n {
+      font-family: 'Orbitron', monospace;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--cyan);
+      line-height: 1;
+      text-shadow: var(--glow-cyan);
+    }
+
+    .stat-l {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* SECTION HEADER */
+    .section-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .count-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+    }
+
+    /* FILTERS */
+    .filter-strip {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; margin-bottom: 28px;
+    }
+
+    .filter-btn {
+      padding: 7px 18px;
+      background: transparent;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .filter-btn.active {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      color: var(--bg);
+      font-weight: 700;
+    }
+
+    /* GRID */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 80px;
+    }
+
+    /* CARD */
+    .game-card {
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: background 0.3s;
+      animation: card-rise 0.45s both;
+    }
+
+    @keyframes card-rise {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .game-card:hover { background: var(--surface2); }
+
+    .game-card:hover .shine { opacity: 1; left: 120%; }
+    .game-card:hover .banner-emoji { transform: scale(1.12) translateY(-5px); }
+
+    .shine {
+      position: absolute;
+      top: 0; left: -60%;
+      width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.025), transparent);
+      transform: skewX(-20deg);
+      opacity: 0;
+      transition: left 0.7s, opacity 0.15s;
+      pointer-events: none;
+    }
+
+    /* CARD TOP STRIPE */
+    .card-stripe { height: 3px; }
+    .s-rpg      { background: linear-gradient(90deg, var(--purple), #c77dff); }
+    .s-action   { background: linear-gradient(90deg, var(--pink), #ff85a1); }
+    .s-platform { background: linear-gradient(90deg, var(--cyan), #80fff0); }
+    .s-roguelike{ background: linear-gradient(90deg, var(--yellow), #ffe066); }
+    .s-simulation{background: linear-gradient(90deg, var(--green), #80ffe0); }
+    .s-indie    { background: linear-gradient(90deg, var(--orange), #ffaa66); }
+
+    /* BANNER */
+    .card-banner {
+      position: relative;
+      height: 145px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    .banner-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+    }
+
+    .banner-vignette {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(4,4,10,0.95));
+      z-index: 1;
+    }
+
+    .banner-emoji {
+      font-size: 54px;
+      position: relative; z-index: 2;
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.9));
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .genre-badge {
+      position: absolute;
+      top: 11px; left: 11px;
+      font-family: 'Orbitron', monospace;
+      font-size: 7px;
+      letter-spacing: 2px;
+      padding: 4px 8px;
+      text-transform: uppercase;
+      z-index: 3;
+    }
+
+    .gb-rpg       { background: rgba(155,93,229,0.25);  border: 1px solid rgba(155,93,229,0.6);  color: #c77dff; }
+    .gb-action    { background: rgba(247,37,133,0.25);  border: 1px solid rgba(247,37,133,0.6);  color: #ff85a1; }
+    .gb-platform  { background: rgba(0,240,208,0.12);   border: 1px solid rgba(0,240,208,0.5);   color: var(--cyan); }
+    .gb-roguelike { background: rgba(255,214,10,0.12);  border: 1px solid rgba(255,214,10,0.5);  color: var(--yellow); }
+    .gb-simulation{ background: rgba(6,214,160,0.12);   border: 1px solid rgba(6,214,160,0.5);   color: var(--green); }
+    .gb-indie     { background: rgba(255,100,0,0.12);   border: 1px solid rgba(255,100,0,0.5);   color: #ff9966; }
+
+    /* CARD BODY */
+    .card-body { padding: 15px 18px 18px; }
+
+    .card-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.3px; line-height: 1.35;
+      color: var(--text); margin-bottom: 4px;
+    }
+
+    .card-dev {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .rating-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 13px;
+    }
+
+    .rating-lbl {
+      font-family: 'Orbitron', monospace;
+      font-size: 8px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase; flex-shrink: 0;
+    }
+
+    .rating-track {
+      flex: 1; height: 2px;
+      background: rgba(255,255,255,0.07);
+      position: relative; overflow: hidden;
+    }
+
+    .rating-fill {
+      position: absolute; top: 0; left: 0;
+      height: 100%; width: 100%;
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 1.3s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .rf-rpg       { background: linear-gradient(90deg, var(--purple), #c77dff); }
+    .rf-action    { background: linear-gradient(90deg, var(--pink), #ff85a1); }
+    .rf-platform  { background: linear-gradient(90deg, var(--cyan), #80fff0); }
+    .rf-roguelike { background: linear-gradient(90deg, var(--yellow), #ffe066); }
+    .rf-simulation{ background: linear-gradient(90deg, var(--green), #80ffe0); }
+    .rf-indie     { background: linear-gradient(90deg, var(--orange), #ffaa66); }
+
+    .game-card.reveal .rating-fill {
+      transform: scaleX(var(--rs));
+    }
+
+    .rating-score {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px; font-weight: 700;
+      color: var(--cyan); flex-shrink: 0;
+      min-width: 26px; text-align: right;
+    }
+
+    .card-footer {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding-top: 11px;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-year {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 3px;
+    }
+
+    .card-status {
+      font-family: 'Orbitron', monospace;
+      font-size: 7px; letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 3px 8px; border: 1px solid;
+    }
+
+    .ss-completed  { color: var(--green); border-color: rgba(6,214,160,0.4); }
+    .ss-playing    { color: var(--yellow); border-color: rgba(255,214,10,0.4); animation: blink 2s infinite; }
+    .ss-backlog    { color: var(--muted);  border-color: rgba(74,74,106,0.4); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .status-pill { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="scanlines"></div>
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <div id="app">
+
+    <header>
+      <div class="header-top">
+        <div>
+          <div class="pre-title">// Sistema de Colección Personal v2.0.47</div>
+          <h1 class="main-title">
+            <span class="line1">GAME</span>
+            <span class="line2">VAULT</span>
+            <div class="glitch-layer">GAME<br>VAULT</div>
+          </h1>
+        </div>
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          SISTEMA ACTIVO
+        </div>
+      </div>
+      <div class="header-rule">
+        <div class="rule-diamond"></div>
+        <div class="rule-line"></div>
+      </div>
+    </header>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-block"><div class="stat-n" data-t="147">0</div><div class="stat-l">Juegos</div></div>
+      <div class="stat-block"><div class="stat-n" data-t="89">0</div><div class="stat-l">Completados</div></div>
+      <div class="stat-block"><div class="stat-n" data-t="3">0</div><div class="stat-l">Jugando</div></div>
+      <div class="stat-block"><div class="stat-n" data-t="2840">0</div><div class="stat-l">Horas</div></div>
+    </div>
+
+    <div class="section-row">
+      <span class="section-label">// Colección</span>
+      <span class="count-badge" id="countBadge">12 juegos</span>
+    </div>
+
+    <div class="filter-strip" id="filterStrip">
+      <button class="filter-btn active" data-g="all">Todos</button>
+      <button class="filter-btn" data-g="RPG">RPG</button>
+      <button class="filter-btn" data-g="Action">Acción</button>
+      <button class="filter-btn" data-g="Platform">Plataformas</button>
+      <button class="filter-btn" data-g="Roguelike">Roguelike</button>
+      <button class="filter-btn" data-g="Indie">Indie</button>
+      <button class="filter-btn" data-g="Simulation">Simulación</button>
+    </div>
+
+    <div class="game-grid" id="gameGrid"></div>
+  </div>
+
+  <script>
+    const GAMES = [
+      { title:"The Witcher 3",          dev:"CD Projekt Red",    year:2015, genre:"RPG",        rating:9.8, status:"completed", label:"Completado", emoji:"⚔️",  bg:"linear-gradient(135deg,#091a08,#12280a,#1a1400)" },
+      { title:"Hollow Knight",          dev:"Team Cherry",       year:2017, genre:"Indie",       rating:9.5, status:"completed", label:"Completado", emoji:"🦋",  bg:"linear-gradient(135deg,#06061a,#0d0a28,#180e38)" },
+      { title:"Celeste",                dev:"Maddy Thorson",     year:2018, genre:"Platform",    rating:9.3, status:"completed", label:"Completado", emoji:"🏔️",  bg:"linear-gradient(135deg,#2a0910,#3a0c1e,#1a0000)" },
+      { title:"Cyberpunk 2077",         dev:"CD Projekt Red",    year:2020, genre:"RPG",        rating:8.7, status:"playing",   label:"Jugando",    emoji:"🌆",  bg:"linear-gradient(135deg,#000e1a,#001626,#0a1200)" },
+      { title:"Hades",                  dev:"Supergiant Games",  year:2020, genre:"Roguelike",  rating:9.6, status:"completed", label:"Completado", emoji:"🔱",  bg:"linear-gradient(135deg,#1a0000,#2c0808,#160c00)" },
+      { title:"Elden Ring",             dev:"FromSoftware",      year:2022, genre:"Action",     rating:9.7, status:"playing",   label:"Jugando",    emoji:"💀",  bg:"linear-gradient(135deg,#0e0e00,#1a1a00,#0a0600)" },
+      { title:"Disco Elysium",          dev:"ZA/UM",             year:2019, genre:"RPG",        rating:9.4, status:"backlog",   label:"Pendiente",  emoji:"🎭",  bg:"linear-gradient(135deg,#001818,#002a28,#001408)" },
+      { title:"Stardew Valley",         dev:"ConcernedApe",      year:2016, genre:"Simulation", rating:9.0, status:"completed", label:"Completado", emoji:"🌱",  bg:"linear-gradient(135deg,#001800,#002a00,#0a1400)" },
+      { title:"Sekiro",                 dev:"FromSoftware",      year:2019, genre:"Action",     rating:9.2, status:"completed", label:"Completado", emoji:"⛩️",  bg:"linear-gradient(135deg,#160000,#0e000e,#060006)" },
+      { title:"Undertale",              dev:"Toby Fox",          year:2015, genre:"Indie",       rating:9.1, status:"completed", label:"Completado", emoji:"❤️",  bg:"linear-gradient(135deg,#1a001a,#0e000e,#000e1a)" },
+      { title:"Ori and the Blind Forest",dev:"Moon Studios",    year:2015, genre:"Platform",    rating:9.0, status:"backlog",   label:"Pendiente",  emoji:"✨",  bg:"linear-gradient(135deg,#00181a,#00001a,#0a0020)" },
+      { title:"Dead Cells",             dev:"Motion Twin",       year:2018, genre:"Roguelike",  rating:8.9, status:"completed", label:"Completado", emoji:"⚰️",  bg:"linear-gradient(135deg,#1a0000,#280000,#0a0000)" },
+    ];
+
+    const GK = { RPG:'rpg', Action:'action', Platform:'platform', Roguelike:'roguelike', Simulation:'simulation', Indie:'indie' };
+
+    function render(list) {
+      const grid = document.getElementById('gameGrid');
+      document.getElementById('countBadge').textContent = list.length + ' juego' + (list.length !== 1 ? 's' : '');
+      grid.innerHTML = '';
+      list.forEach((g, i) => {
+        const k = GK[g.genre];
+        const el = document.createElement('div');
+        el.className = 'game-card';
+        el.style.cssText = `animation-delay:${i*0.055}s; --rs:${g.rating/10}`;
+        el.innerHTML = `
+          <div class="shine"></div>
+          <div class="card-stripe s-${k}"></div>
+          <div class="card-banner">
+            <div class="banner-bg" style="background:${g.bg}"></div>
+            <div class="banner-vignette"></div>
+            <span class="banner-emoji">${g.emoji}</span>
+            <span class="genre-badge gb-${k}">${g.genre}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${g.title}</div>
+            <div class="card-dev">${g.dev}</div>
+            <div class="rating-row">
+              <span class="rating-lbl">Score</span>
+              <div class="rating-track">
+                <div class="rating-fill rf-${k}"></div>
+              </div>
+              <span class="rating-score">${g.rating}</span>
+            </div>
+            <div class="card-footer">
+              <span class="card-year">${g.year}</span>
+              <span class="card-status ss-${g.status}">${g.label}</span>
+            </div>
+          </div>`;
+        grid.appendChild(el);
+        setTimeout(() => el.classList.add('reveal'), 60 + i * 65);
+      });
+    }
+
+    document.getElementById('filterStrip').addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const g = btn.dataset.g;
+      render(g === 'all' ? GAMES : GAMES.filter(x => x.genre === g));
+    });
+
+    function counter(el, target, ms) {
+      const t0 = performance.now();
+      const tick = now => {
+        const p = Math.min((now - t0) / ms, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(e * target).toLocaleString('es');
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    function initStats() {
+      document.querySelectorAll('.stat-n').forEach(el => counter(el, +el.dataset.t, 1600));
+      document.getElementById('statsGrid').classList.add('stats-anim');
+    }
+
+    /* CANVAS */
+    const cv = document.getElementById('canvas');
+    const cx = cv.getContext('2d');
+    let W, H, pts = [];
+
+    function resize() {
+      W = cv.width  = window.innerWidth;
+      H = cv.height = window.innerHeight;
+    }
+
+    function mkPts() {
+      pts = Array.from({ length: 90 }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.1 + 0.2,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        a: Math.random() * 0.35 + 0.06,
+        c: Math.random() > 0.65 ? '#f72585' : '#00f0d0'
+      }));
+    }
+
+    function drawGrid() {
+      cx.strokeStyle = 'rgba(0,240,208,0.04)';
+      cx.lineWidth = 1;
+      const S = 80;
+      for (let x = 0; x < W; x += S) { cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,H); cx.stroke(); }
+      for (let y = 0; y < H; y += S) { cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
+    }
+
+    function loop() {
+      cx.clearRect(0, 0, W, H);
+      drawGrid();
+      pts.forEach(p => {
+        cx.beginPath();
+        cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        cx.fillStyle = p.c;
+        cx.globalAlpha = p.a;
+        cx.fill();
+        cx.globalAlpha = 1;
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < -8) p.x = W + 8;
+        if (p.x > W+8) p.x = -8;
+        if (p.y < -8) p.y = H + 8;
+        if (p.y > H+8) p.y = -8;
+      });
+      requestAnimationFrame(loop);
+    }
+
+    /* CURSOR */
+    const cur = document.getElementById('cursor');
+    const ring = document.getElementById('cursor-ring');
+
+    document.addEventListener('mousemove', e => {
+      cur.style.left  = e.clientX + 'px';
+      cur.style.top   = e.clientY + 'px';
+      setTimeout(() => { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; }, 80);
+    });
+    document.addEventListener('mousedown', () => cur.style.transform = 'translate(-50%,-50%) scale(2.2)');
+    document.addEventListener('mouseup',   () => cur.style.transform = 'translate(-50%,-50%) scale(1)');
+
+    /* BOOT */
+    resize();
+    mkPts();
+    loop();
+    render(GAMES);
+    setTimeout(initStats, 300);
+    window.addEventListener('resize', () => { resize(); mkPts(); });
+  </script>
+</body>
+</html>
